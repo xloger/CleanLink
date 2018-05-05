@@ -1,5 +1,6 @@
 package com.xloger.cleanlink
 
+import android.app.NotificationManager
 import android.app.Service
 import android.content.*
 import android.database.Cursor
@@ -8,9 +9,13 @@ import android.os.IBinder
 import android.util.Log
 import android.content.ClipData
 import android.content.ContentResolver
+import android.support.v4.app.NotificationCompat
+import kotlinx.android.synthetic.main.activity_main.*
+import kotlin.properties.Delegates
 
 
 class MonitorService : Service() {
+    private var clip by Delegates.notNull<ClipboardManager>()
 
     override fun onBind(intent: Intent): IBinder? {
         // TODO: Return the communication channel to the service.
@@ -19,7 +24,9 @@ class MonitorService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        val clip = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        showNotification()
+
+        clip = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
 
         clip.addPrimaryClipChangedListener {
             if (!clip.hasPrimaryClip()) {
@@ -29,13 +36,17 @@ class MonitorService : Service() {
             if (clip.primaryClipDescription.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)) {
                 val clipData = clip.primaryClip
                 val item = clipData.getItemAt(0)
-                with(item.text.toString()) {
-                    if (UrlParser.findUrl(this)) {
+                with(UrlParser.findUrl(item.text.toString())) {
+                    if (isNotBlank()) {
                         val cleanUrl = UrlParser.clear(this)
                         log("处理后的链接：$cleanUrl")
+                        if (cleanUrl.toString() != this) {
+                            dealUrl(cleanUrl)
+                        }
                     }
                 }
             }
+
 //            } else if (clip.primaryClipDescription.hasMimeType(ClipDescription.MIMETYPE_TEXT_URILIST)) {
 //                val cr = contentResolver
 //                val cdUri = clip.primaryClip
@@ -58,7 +69,36 @@ class MonitorService : Service() {
 //            }
         }
 
+    }
 
+    /**
+     * 处理链接，将其复制到剪切板
+     */
+    private fun dealUrl(uri: Uri) {
+        val textCd = ClipData.newPlainText("clean", uri.toString())
+        clip.primaryClip = textCd
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopNotification()
+    }
+
+    private fun showNotification() {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val builder = NotificationCompat.Builder(this)
+        builder.setContentTitle("我还活着")
+                .setContentText("=。=")
+                .setSmallIcon(R.drawable.ic_launcher_background)
+                .setOngoing(true)
+        notificationManager.notify(10086, builder.build())
+
+    }
+
+    private fun stopNotification() {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.cancel(10086)
     }
 
     private fun log(text: String) {

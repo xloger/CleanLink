@@ -10,25 +10,38 @@ import android.util.Log
  */
 object UrlParser {
 
-    fun findUrl(s: String) : Boolean {
+    /**
+     * 从一个字符串中找寻并返回一个链接
+     */
+    fun findUrl(s: String): String {
+        var ret = ""
         log("要判断的文字是：$s")
         if (s.contains("http")) {
-            return true
+            ret = s
+            return ret
         }
-        return false
+        return ret
     }
 
-    fun clear(s: String) : Uri {
+    /**
+     * 处理链接 utm 信息
+     */
+    fun clear(s: String): Uri {
         val uri = Uri.parse(s)
         if (uri != null) {
-            Log.d("xloger", "${uri.scheme} ${uri.host} ${uri.path}")
+//            Log.d("xloger", "${uri.scheme} ${uri.host} ${uri.path}")
+            val builder = uri.buildUpon()
             uri.queryParameterNames.forEach {
-                log(it)
-                log("值 ${uri.getQueryParameter(it)}")
+                log("key: $it")
+                log("value: ${uri.getQueryParameter(it)}")
+
             }
-            
+
+            builder.clearQuery()
+            return builder.build()
+
         } else {
-            Log.d("xloger", "不是链接")
+            log("不是链接")
         }
 
         return uri
