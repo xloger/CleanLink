@@ -11,14 +11,20 @@ import android.content.ContentResolver
 
 
 class MonitorService : Service() {
+    var lastResult = ""
 
     override fun onBind(intent: Intent): IBinder? {
         // TODO: Return the communication channel to the service.
         throw UnsupportedOperationException("Not yet implemented")
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return START_STICKY
+    }
+
     override fun onCreate() {
         super.onCreate()
+        JSEngine.init()
         val clip = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
 
         clip.addPrimaryClipChangedListener {
@@ -30,9 +36,21 @@ class MonitorService : Service() {
                 val clipData = clip.primaryClip
                 val item = clipData.getItemAt(0)
                 with(item.text.toString()) {
-                    if (UrlParser.findUrl(this)) {
-                        val cleanUrl = UrlParser.clear(this)
-                        log("处理后的链接：$cleanUrl")
+                    if (lastResult == this) {
+                        return@with
+                    }
+                    //                    if (UrlParser.findUrl(this)) {
+//                        val cleanUrl = UrlParser.clear(this)
+//                        log("处理后的链接：$cleanUrl")
+//                    }
+                    val result = JSEngine.parseLink(this)
+                    if (result != this) {
+                        log("之前的链接：$this")
+                        log("处理之后的链接：$result")
+                        lastResult = result
+                        paste(result)
+                    } else {
+                        log("相同，不粘贴")
                     }
                 }
             }
@@ -60,6 +78,13 @@ class MonitorService : Service() {
 
 
     }
+
+    private fun paste(text: String) {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val textCd = ClipData.newPlainText("link", text)
+        clipboard.primaryClip = textCd
+    }
+
 
     private fun log(text: String) {
         Log.d("xloger", text)

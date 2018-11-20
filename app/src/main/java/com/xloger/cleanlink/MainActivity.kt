@@ -24,7 +24,7 @@ class MainActivity : AppCompatActivity() {
         copy_text.setOnClickListener {
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             val textCd = ClipData.newPlainText("test", copy_text.text)
-            clipboard.setPrimaryClip(textCd)
+            clipboard.primaryClip = textCd
         }
     }
 }
