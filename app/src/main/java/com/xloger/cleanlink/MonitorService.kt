@@ -8,23 +8,28 @@ import android.os.IBinder
 import android.util.Log
 import android.content.ClipData
 import android.content.ContentResolver
+import org.jetbrains.anko.ctx
 
 
 class MonitorService : Service() {
     var lastResult = ""
-
+    val notificationId = 9527
+    lateinit var xNotification: XNotification
     override fun onBind(intent: Intent): IBinder? {
-        // TODO: Return the communication channel to the service.
         throw UnsupportedOperationException("Not yet implemented")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        xNotification = XNotification(ctx)
+                .create("CleanLink 服务启动", "", R.mipmap.ic_launcher)
+                .setId(notificationId)
+        startForeground(notificationId, xNotification.builder.build())
         return START_STICKY
     }
 
     override fun onCreate() {
         super.onCreate()
-        JSEngine.init()
+        JSEngine.init(ctx)
         val clip = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
 
         clip.addPrimaryClipChangedListener {
@@ -79,10 +84,26 @@ class MonitorService : Service() {
 
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        stopForeground(true)
+    }
+
+
     private fun paste(text: String) {
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val textCd = ClipData.newPlainText("link", text)
         clipboard.primaryClip = textCd
+        notifyForOpen(text)
+    }
+
+    private fun notifyForOpen(text: String) {
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.data = Uri.parse(text)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        xNotification
+                .setResultIntent(intent)
+                .updateText("处理链接：$text", "点击即可在浏览器中打开")
     }
 
 
