@@ -26,7 +26,7 @@ object UrlParser {
                 log(it)
                 log("值 ${uri.getQueryParameter(it)}")
             }
-
+            
         } else {
             Log.d("xloger", "不是链接")
         }

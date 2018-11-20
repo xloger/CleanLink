@@ -8,28 +8,17 @@ import android.os.IBinder
 import android.util.Log
 import android.content.ClipData
 import android.content.ContentResolver
-import org.jetbrains.anko.ctx
 
 
 class MonitorService : Service() {
-    var lastResult = ""
-    val notificationId = 9527
-    lateinit var xNotification: XNotification
-    override fun onBind(intent: Intent): IBinder? {
-        throw UnsupportedOperationException("Not yet implemented")
-    }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        xNotification = XNotification(ctx)
-                .create("CleanLink 服务启动", "", R.mipmap.ic_launcher)
-                .setId(notificationId)
-        startForeground(notificationId, xNotification.builder.build())
-        return START_STICKY
+    override fun onBind(intent: Intent): IBinder? {
+        // TODO: Return the communication channel to the service.
+        throw UnsupportedOperationException("Not yet implemented")
     }
 
     override fun onCreate() {
         super.onCreate()
-        JSEngine.init(ctx)
         val clip = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
 
         clip.addPrimaryClipChangedListener {
@@ -41,21 +30,9 @@ class MonitorService : Service() {
                 val clipData = clip.primaryClip
                 val item = clipData.getItemAt(0)
                 with(item.text.toString()) {
-                    if (lastResult == this) {
-                        return@with
-                    }
-                    //                    if (UrlParser.findUrl(this)) {
-//                        val cleanUrl = UrlParser.clear(this)
-//                        log("处理后的链接：$cleanUrl")
-//                    }
-                    val result = JSEngine.parseLink(this)
-                    if (result != this) {
-                        log("之前的链接：$this")
-                        log("处理之后的链接：$result")
-                        lastResult = result
-                        paste(result)
-                    } else {
-                        log("相同，不粘贴")
+                    if (UrlParser.findUrl(this)) {
+                        val cleanUrl = UrlParser.clear(this)
+                        log("处理后的链接：$cleanUrl")
                     }
                 }
             }
@@ -83,29 +60,6 @@ class MonitorService : Service() {
 
 
     }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        stopForeground(true)
-    }
-
-
-    private fun paste(text: String) {
-        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val textCd = ClipData.newPlainText("link", text)
-        clipboard.primaryClip = textCd
-        notifyForOpen(text)
-    }
-
-    private fun notifyForOpen(text: String) {
-        val intent = Intent(Intent.ACTION_VIEW)
-        intent.data = Uri.parse(text)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        xNotification
-                .setResultIntent(intent)
-                .updateText("处理链接：$text", "点击即可在浏览器中打开")
-    }
-
 
     private fun log(text: String) {
         Log.d("xloger", text)
